@@ -1,0 +1,18 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36511.14 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WWR-Utilities", "WWR-Utilities.shproj", "{C795BFEA-4839-44DD-A100-DB17E03C49AA}"
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B2CC8F28-C830-4A18-92BA-6586A8711CBF}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		WWR-Utilities.projitems*{c795bfea-4839-44dd-a100-db17e03c49aa}*SharedItemsImports = 13
+	EndGlobalSection
+EndGlobal
