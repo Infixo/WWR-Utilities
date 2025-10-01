@@ -1,5 +1,6 @@
 #pragma warning disable CA1416 // Validate platform compatibility
 
+using Microsoft.Xna.Framework;
 using STM.Data;
 using STM.GameWorld;
 using STM.GameWorld.Users;
@@ -11,6 +12,17 @@ namespace Utilities;
 
 public static class WorldwideRushExtensions
 {
+    public static Color OvercrowdedColor(this CityUser city, Color defColor)
+    {
+        int ratio = city.GetTotalIndirect() * 100 / city.GetMaxIndirect();
+        if (ratio > 150) return Color.DarkRed;
+        else if (ratio > 100) return Color.Red;
+        else if (ratio > 75) return Color.DarkOrange;
+        else if (ratio > 50) return Color.Yellow;
+        return defColor;
+    }
+
+
     // Get all passengers waiting in the city, similar to CityUser.GetPassengers(CityUser destination) but returns all cities
     public static Dictionary<CityUser, int> GetAllPassengers(this CityUser city)
     {
@@ -107,10 +119,26 @@ public static class WorldwideRushExtensions
     }
 
 
+    public static long GetWaiting(this Line line, CityUser city)
+    {
+        long waiting = 0;
+        Dictionary<CityUser, int> passengers = city.GetAllPassengers();
+        foreach (var destination in passengers)
+        {
+            if (city.IsConnectedTo(destination.Key, line))
+            {
+                waiting += destination.Value;
+            }
+        }
+        return waiting;
+    }
+
     public static long GetWaiting(this Line line)
     {
         long waiting = 0;
         foreach (CityUser city in line.Instructions.Cities)
+            waiting += line.GetWaiting(city);
+        /*
         {
             Dictionary<CityUser, int> passengers = city.GetAllPassengers();
             foreach (var destination in passengers)
@@ -121,6 +149,7 @@ public static class WorldwideRushExtensions
                 }
             }
         }
+        */
         return waiting;
     }
 
