@@ -51,7 +51,7 @@ public static class ExtensionsHelper
         return (T)method.Invoke(obj, param);
     }
 
-    // 2025-09-23 Infixo: Calling a methid that returns void, cannot be done via <T>
+    // 2025-09-23 Infixo: Calling a method that returns void, cannot be done via <T>
     public static void CallPrivateMethodVoid(this object obj, string name, params object[] param)
     {
         BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -60,9 +60,18 @@ public static class ExtensionsHelper
         method.Invoke(obj, param);
     }
 
+    // 2025-10-01 Infixo: Calling a method with its full signature
+    public static void CallPrivateMethodTypesVoid(this object obj, string name, Type[] types, params object[] param)
+    {
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        Type type = obj.GetType();
+        MethodInfo method = type.GetMethod(name, flags, null, types, null);
+        method.Invoke(obj, param);
+    }
+
     // 2025-09-25 Infixo: Calling a private static method requires a bit different approach
     // Usage: typeof(MyClass).CallPrivateStaticMethod<string>("MethodName", [params]);
-        public static T CallPrivateStaticMethod<T>(this Type type, string name, params object[] param)
+    public static T CallPrivateStaticMethod<T>(this Type type, string name, params object[] param)
     {
         BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
         MethodInfo method = type.GetMethod(name, flags);
