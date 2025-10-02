@@ -40,7 +40,7 @@ public static class ExtensionsHelper
         BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
         Type type = obj.GetType();
         PropertyInfo field = type.GetProperty(name, flags);
-        field.SetValue(obj, value, null);
+        field.SetValue(obj, value, null); // 3rd param is only used for indexer properties
     }
 
     public static T CallPrivateMethod<T>(this object obj, string name, params object[] param)
@@ -81,13 +81,21 @@ public static class ExtensionsHelper
     // 2025-09-22 Infixo: Accessing a property that is public but its Setter is private
     public static void SetPublicProperty(this object obj, string name, object value)
     {
-        BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly; // we need both public and non-public members
         Type type = obj.GetType();
-        PropertyInfo field = type.GetProperty(name, flags);
-        // Now, get the private setter method. The 'true' argument is crucial, we're looking for a non-public method.
-        var setter = field.GetSetMethod(true);
-        if (setter != null)
-            setter.Invoke(obj, [value]);
+        // 2025-10-02 Code to walk the chain to find private setter, if abstract class is used
+        while (type != null)
+        {
+            PropertyInfo? prop = type.GetProperty(name, flags);
+            // Now, get the private setter method. The 'true' argument is crucial, we're looking for a non-public method.
+            var setter = prop?.GetSetMethod(true);
+            if (setter != null)
+            {
+                setter.Invoke(obj, [value]);
+                return;
+            }
+            type = type.BaseType;
+        }
     }
 }
 
