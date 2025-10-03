@@ -232,6 +232,21 @@ public static class WorldwideRushExtensions
         }
         return false;
     }
+
+
+    // Better efficiency calculation
+    public static long GetQuarterEfficiency(this VehicleBaseUser vehicle)
+    {
+        long transported = 0; // how many we actually transported
+        long maxCapacity = 0; // how many we could
+        for (int offset = 0; offset < 3; offset++)
+            if (vehicle.Throughput.Months > offset && vehicle.Efficiency.GetOffset(offset) > 0)
+            {
+                transported += vehicle.Throughput.GetOffset(offset);
+                maxCapacity += vehicle.Throughput.GetOffset(offset) * 100 / vehicle.Efficiency.GetOffset(offset);
+            }
+        return maxCapacity > 0 ? transported * 100 / maxCapacity : 0;
+    }
 }
 
 #pragma warning restore CA1416 // Validate platform compatibility
