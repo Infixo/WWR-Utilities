@@ -235,6 +235,7 @@ public static class WorldwideRushExtensions
 
 
     // Better efficiency calculation
+    /*
     public static long GetQuarterEfficiency(this VehicleBaseUser vehicle)
     {
         long transported = 0; // how many we actually transported
@@ -247,6 +248,7 @@ public static class WorldwideRushExtensions
             }
         return maxCapacity > 0 ? transported * 100 / maxCapacity : 0;
     }
+    */
 }
 
 #pragma warning restore CA1416 // Validate platform compatibility
