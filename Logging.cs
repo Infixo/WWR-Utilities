@@ -144,7 +144,7 @@ public static class DebugConsole
             AllocConsole();
             SetFont(12);
             Console.Clear();
-            Log.DumpMainDataDefaults(); // this should be dumped only once
+            //Log.DumpMainDataDefaults(); // this should be dumped only once
         }
     }
 
