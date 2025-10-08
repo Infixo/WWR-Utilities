@@ -115,13 +115,13 @@ public static class Log
     {
         Type type = MainData.Defaults.GetType();
         PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        Log.Write($"--- Public Properties of {type.Name} ---");
+        Log.Write($"--- Public Properties of {type.Name} ---", false);
         // Iterate through the properties and print their names and values
         foreach (PropertyInfo property in properties)
         {
             string name = property.Name;
             object value = property.GetValue(MainData.Defaults);
-            Log.Write($"{name}= {value}  ({property.PropertyType.Name})");
+            Log.Write($"{name}= {value}  ({property.PropertyType.Name})", false);
         }
     }
 }
