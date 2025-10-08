@@ -8,6 +8,8 @@ namespace Utilities;
 
 public static class Log
 {
+    private static readonly object LogFileLock = new();
+
     /// <summary>
     /// Writes a string message to a log file in the user's temporary directory.
     /// </summary>
@@ -26,23 +28,25 @@ public static class Log
 
         // Combine the temporary path with the log file name.
         string filePath = Path.Combine(Path.GetTempPath(), assemblyName + "Log.txt");
-
-        try
+        lock (LogFileLock)
         {
-            // Create a StreamWriter in append mode. This will create the file if it doesn't exist,
-            // or open it and add the new content to the end.
-            using (StreamWriter writer = new StreamWriter(filePath, true))
+            try
             {
-                // Format the current date and time to prepend to the message.
-                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                // Write the log message and a new line.
-                writer.WriteLine($"[{timestamp}] {logMessage}");
+                // Create a StreamWriter in append mode. This will create the file if it doesn't exist,
+                // or open it and add the new content to the end.
+                using (StreamWriter writer = new StreamWriter(filePath, true))
+                {
+                    // Format the current date and time to prepend to the message.
+                    string timestamp = DateTime.Now.ToString("HH:mm:ss"); //yyyy-MM-dd HH:mm:ss
+                    // Write the log message and a new line.
+                    writer.WriteLine($"[{timestamp}] {logMessage}");
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            // Log any potential errors to the console.
-            Console.WriteLine($"Error writing to log file: {ex.Message}");
+            catch (Exception ex)
+            {
+                // Log any potential errors to the console.
+                Console.WriteLine($"Error writing to log file: {ex.Message}");
+            }
         }
     }
 
@@ -56,7 +60,7 @@ public static class Log
     {
         StackTrace st = new();
         MethodBase mb = st.GetFrame(frame).GetMethod(); // 0 - GetCallingMethod, 1 - Log, 2 - actual function calling a Log method
-        return mb.DeclaringType + "." + mb.Name;
+        return /*mb.DeclaringType + "." +*/ mb.Name;
     }
 
     /// <summary>

@@ -6,6 +6,7 @@ using STM.GameWorld;
 using STM.GameWorld.Users;
 using STMG.Engine;
 using STMG.UI.Control;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Utilities;
 
@@ -20,6 +21,30 @@ public static class WorldwideRushExtensions
         else if (ratio > 75) return Color.DarkOrange;
         else if (ratio > 50) return Color.Yellow;
         return defColor;
+    }
+
+    public static string GetVehicleTypeIcon(int vehicle_type)
+    {
+        switch (vehicle_type)
+        {
+            case 0: return "<!cicon_road_vehicle>";
+            case 1: return "<!cicon_train>";
+            case 2: return "<!cicon_plane>";
+            case 3: return "<!cicon_ship>";
+        }
+        return "?";
+    }
+
+    public static string GetVehicleTypeIcon(string type_name)
+    {
+        switch (type_name)
+        {
+            case "road_vehicle": return "<!cicon_road_vehicle>";
+            case "train": return "<!cicon_train>";
+            case "plane": return "<!cicon_plane>";
+            case "ship": return "<!cicon_ship>";
+        }
+        return "?";
     }
 
 
