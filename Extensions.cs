@@ -5,8 +5,6 @@ using STM.Data;
 using STM.GameWorld;
 using STM.GameWorld.Users;
 using STMG.Engine;
-using STMG.UI.Control;
-using System.Reflection.Metadata.Ecma335;
 
 namespace Utilities;
 
@@ -274,6 +272,46 @@ public static class WorldwideRushExtensions
         return maxCapacity > 0 ? transported * 100 / maxCapacity : 0;
     }
     */
+
+
+    // Calculate total distance, for cyclic routes adds last-first section
+    // Distance between cities is not stored, it is calculated when needed :(
+    public static double GetTotalDistance(this Line line)
+    {
+        CityUser[] cities = line.Instructions.Cities; // for readability
+        if (cities.Length < 2)
+        {
+            return 0.0; //  there is no route yet
+        }
+
+        static double GetDistance(CityUser a, CityUser b, byte vehicle_type)
+        {
+            // TODO: this could be cached later on to speed up the calculations
+            switch (vehicle_type)
+            {
+                case 0: return RoadPathSearch.GetRoute(a, b).Distance;
+                case 1: return RoadPathSearch.GetRails(a, b).Distance;
+                case 2: return GameScene.GetDistance(a, b);
+                case 3: return SeaPathSearch.GetRoute(a, b).Distance;
+            }
+            return 0d;
+        }
+
+        double distance = 0.0;
+        for (int i = 1; i < cities.Length; i++)
+        {
+            double _dist = GetDistance(cities[i - 1], cities[i], line.Vehicle_type);
+            distance += _dist;
+        }
+        if (line.Instructions.Cyclic)
+        {
+            double _dist = GetDistance(cities[^1], cities[0], line.Vehicle_type);
+            distance += _dist;
+        }
+        return distance;
+    }
+
+
 }
 
 #pragma warning restore CA1416 // Validate platform compatibility
