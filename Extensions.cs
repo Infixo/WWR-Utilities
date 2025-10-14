@@ -4,7 +4,9 @@ using Microsoft.Xna.Framework;
 using STM.Data;
 using STM.GameWorld;
 using STM.GameWorld.Users;
+using STM.UI.Explorer;
 using STMG.Engine;
+using System.Runtime.CompilerServices;
 
 namespace Utilities;
 
@@ -142,40 +144,6 @@ public static class WorldwideRushExtensions
     }
 
 
-    public static long GetWaiting(this Line line, CityUser city)
-    {
-        long waiting = 0;
-        Dictionary<CityUser, int> passengers = city.GetAllPassengers();
-        foreach (var destination in passengers)
-        {
-            if (city.IsConnectedTo(destination.Key, line))
-            {
-                waiting += destination.Value;
-            }
-        }
-        return waiting;
-    }
-
-    public static long GetWaiting(this Line line)
-    {
-        long waiting = 0;
-        foreach (CityUser city in line.Instructions.Cities)
-            waiting += line.GetWaiting(city);
-        /*
-        {
-            Dictionary<CityUser, int> passengers = city.GetAllPassengers();
-            foreach (var destination in passengers)
-            {
-                if (city.IsConnectedTo(destination.Key, line))
-                {
-                    waiting += destination.Value;
-                }
-            }
-        }
-        */
-        return waiting;
-    }
-
 
     // Counters to count method calls
     public static int CounterIsConn = 0; // counts IsConnectedTo
@@ -255,23 +223,75 @@ public static class WorldwideRushExtensions
         }
         return false;
     }
+}
 
 
-    // Better efficiency calculation
-    /*
-    public static long GetQuarterEfficiency(this VehicleBaseUser vehicle)
+// Line extensions
+public static class LineExt
+{
+    // Data extensions
+    public class ExtraData
     {
-        long transported = 0; // how many we actually transported
-        long maxCapacity = 0; // how many we could
-        for (int offset = 0; offset < 3; offset++)
-            if (vehicle.Throughput.Months > offset && vehicle.Efficiency.GetOffset(offset) > 0)
-            {
-                transported += vehicle.Throughput.GetOffset(offset);
-                maxCapacity += vehicle.Throughput.GetOffset(offset) * 100 / vehicle.Efficiency.GetOffset(offset);
-            }
-        return maxCapacity > 0 ? transported * 100 / maxCapacity : 0;
+        public string Header; // companyId-lineId-hubName
+        List<List<string>> Text = []; // text lines
     }
-    */
+    private static readonly ConditionalWeakTable<Line, ExtraData> _extras = [];
+    public static ExtraData Extra(this ExplorerLine line) => _extras.GetOrCreateValue(line);
+
+    public static void NewEvaluation(string header)
+    {
+        List<string> newEval = [$"[{DateTime.Now.ToString("HH:mm:ss")}]  {header}"];
+        Extra().Text.Insert(0, newEval);
+        if (Extra().Text.Count == 4) Extra().Text.RemoveAt(3); // keep only last 3 evals
+    }
+
+    public static void AddEvaluationText(string text)
+    {
+        Extra().Text.First().Add(text);
+    }
+
+
+    public static TooltipPreset GetEvaluationTooltip()
+    {
+        TooltipPreset tooltip = TooltipPreset.Get(header, engine, can_lock: true);
+        if (Extra().Text.Length == 0)
+        {
+            tooltip.AddDescription("No evaluations");
+            return tooltip;
+        }
+        for (int i = 0; i < Extra().Text.Length; i++)
+        {
+            if (i > 0) tooltip.AddSeparator();
+            tooltip.AddBold(Extra().Text[i][0]);
+            for (int j = 1; j < Extra().Text[i].Length; j++)
+                tooltip.AddDescription(Extra().Text[i][j]);
+        }
+        return tooltip;
+    }
+
+
+    public static long GetWaiting(this Line line, CityUser city)
+    {
+        long waiting = 0;
+        Dictionary<CityUser, int> passengers = city.GetAllPassengers();
+        foreach (var destination in passengers)
+        {
+            if (city.IsConnectedTo(destination.Key, line))
+            {
+                waiting += destination.Value;
+            }
+        }
+        return waiting;
+    }
+
+
+    public static long GetWaiting(this Line line)
+    {
+        long waiting = 0;
+        foreach (CityUser city in line.Instructions.Cities)
+            waiting += line.GetWaiting(city);
+        return waiting;
+    }
 
 
     // Calculate total distance, for cyclic routes adds last-first section
@@ -310,8 +330,6 @@ public static class WorldwideRushExtensions
         }
         return distance;
     }
-
-
 }
 
 #pragma warning restore CA1416 // Validate platform compatibility
