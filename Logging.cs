@@ -8,6 +8,7 @@ namespace Utilities;
 
 public static class Log
 {
+    private static readonly object ConsoleLock = new();
     private static readonly object LogFileLock = new();
 
     /// <summary>
@@ -23,8 +24,11 @@ public static class Log
         string assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 
-        // Simple console output
-        Console.WriteLine(assemblyName + ": " + logMessage);
+        lock (ConsoleLock)
+        {
+            // Simple console output
+            Console.WriteLine(assemblyName + ": " + logMessage);
+        }
 
         // Combine the temporary path with the log file name.
         string filePath = Path.Combine(Path.GetTempPath(), assemblyName + "Log.txt");
