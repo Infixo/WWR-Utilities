@@ -229,47 +229,6 @@ public static class WorldwideRushExtensions
 // Line extensions
 public static class LineExt
 {
-    // Data extensions
-    public class ExtraData
-    {
-        public string Header = "(unknown)"; // companyId-lineId-hubName
-        public readonly List<List<string>> Text = []; // text lines
-    }
-    private static readonly ConditionalWeakTable<Line, ExtraData> _extras = [];
-    public static ExtraData Extra(this Line line) => _extras.GetOrCreateValue(line);
-
-
-    public static void NewEvaluation(this Line line, string header)
-    {
-        List<string> newEval = [$"[{DateTime.Now:HH:mm:ss}]  {header}"];
-        line.Extra().Text.Insert(0, newEval);
-        if (line.Extra().Text.Count == 4) line.Extra().Text.RemoveAt(3); // keep only last 3 evals
-    }
-
-    public static void AddEvaluationText(this Line line, string text)
-    {
-        line.Extra().Text.First().Add(text);
-    }
-
-    public static TooltipPreset GetEvaluationTooltip(this Line line, GameEngine engine)
-    {
-        TooltipPreset tooltip = TooltipPreset.Get(line.Extra().Header, engine, can_lock: true);
-        if (line.Extra().Text.Count == 0)
-        {
-            tooltip.AddBoldLabel("No evaluations");
-            return tooltip;
-        }
-        for (int i = 0; i < line.Extra().Text.Count; i++)
-        {
-            if (i > 0) tooltip.AddSeparator();
-            tooltip.AddBoldLabel(line.Extra().Text[i][0]);
-            for (int j = 1; j < line.Extra().Text[i].Count; j++)
-                tooltip.AddDescription(line.Extra().Text[i][j]);
-        }
-        return tooltip;
-    }
-
-
     public static long GetWaiting(this Line line, CityUser city)
     {
         long waiting = 0;
