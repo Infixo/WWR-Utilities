@@ -1,9 +1,9 @@
 #pragma warning disable CA1416 // Validate platform compatibility
 
 using Microsoft.Xna.Framework;
-using STM.Data;
 using STM.GameWorld;
 using STM.GameWorld.Users;
+using STM.UI;
 using STM.UI.Explorer;
 using STMG.Engine;
 using System.Runtime.CompilerServices;
@@ -212,13 +212,13 @@ public static class WorldwideRushExtensions
         {
             //for (int m = 0; m < from.Routes.Count; m++)
             //{
-                if (/*from.Routes[m]*/connection.Instructions.Contains(_route.Path[1].User))
-                {
-                    //Line _line4 = scene.Session.Companies[from.Routes[m].Vehicle.Company].Line_manager.GetLine(from.Routes[m].Vehicle);
-                    //CounterGetLine3++;
-                    //if (_line4 == connection)
-                    return true;
-                }
+            if (/*from.Routes[m]*/connection.Instructions.Contains(_route.Path[1].User))
+            {
+                //Line _line4 = scene.Session.Companies[from.Routes[m].Vehicle.Company].Line_manager.GetLine(from.Routes[m].Vehicle);
+                //CounterGetLine3++;
+                //if (_line4 == connection)
+                return true;
+            }
             //}
         }
         return false;
@@ -232,39 +232,39 @@ public static class LineExt
     // Data extensions
     public class ExtraData
     {
-        public string Header; // companyId-lineId-hubName
-        List<List<string>> Text = []; // text lines
+        public string Header = "(unknown)"; // companyId-lineId-hubName
+        public readonly List<List<string>> Text = []; // text lines
     }
     private static readonly ConditionalWeakTable<Line, ExtraData> _extras = [];
-    public static ExtraData Extra(this ExplorerLine line) => _extras.GetOrCreateValue(line);
+    public static ExtraData Extra(this Line line) => _extras.GetOrCreateValue(line);
 
-    public static void NewEvaluation(string header)
+
+    public static void NewEvaluation(this Line line, string header)
     {
-        List<string> newEval = [$"[{DateTime.Now.ToString("HH:mm:ss")}]  {header}"];
-        Extra().Text.Insert(0, newEval);
-        if (Extra().Text.Count == 4) Extra().Text.RemoveAt(3); // keep only last 3 evals
+        List<string> newEval = [$"[{DateTime.Now:HH:mm:ss}]  {header}"];
+        line.Extra().Text.Insert(0, newEval);
+        if (line.Extra().Text.Count == 4) line.Extra().Text.RemoveAt(3); // keep only last 3 evals
     }
 
-    public static void AddEvaluationText(string text)
+    public static void AddEvaluationText(this Line line, string text)
     {
-        Extra().Text.First().Add(text);
+        line.Extra().Text.First().Add(text);
     }
 
-
-    public static TooltipPreset GetEvaluationTooltip()
+    public static TooltipPreset GetEvaluationTooltip(this Line line, GameEngine engine)
     {
-        TooltipPreset tooltip = TooltipPreset.Get(header, engine, can_lock: true);
-        if (Extra().Text.Length == 0)
+        TooltipPreset tooltip = TooltipPreset.Get(line.Extra().Header, engine, can_lock: true);
+        if (line.Extra().Text.Count == 0)
         {
-            tooltip.AddDescription("No evaluations");
+            tooltip.AddBoldLabel("No evaluations");
             return tooltip;
         }
-        for (int i = 0; i < Extra().Text.Length; i++)
+        for (int i = 0; i < line.Extra().Text.Count; i++)
         {
             if (i > 0) tooltip.AddSeparator();
-            tooltip.AddBold(Extra().Text[i][0]);
-            for (int j = 1; j < Extra().Text[i].Length; j++)
-                tooltip.AddDescription(Extra().Text[i][j]);
+            tooltip.AddBoldLabel(line.Extra().Text[i][0]);
+            for (int j = 1; j < line.Extra().Text[i].Count; j++)
+                tooltip.AddDescription(line.Extra().Text[i][j]);
         }
         return tooltip;
     }
