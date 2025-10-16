@@ -1,12 +1,11 @@
 #pragma warning disable CA1416 // Validate platform compatibility
 
 using Microsoft.Xna.Framework;
+using STM.Data.Entities;
 using STM.GameWorld;
 using STM.GameWorld.Users;
-using STM.UI;
-using STM.UI.Explorer;
 using STMG.Engine;
-using System.Runtime.CompilerServices;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace Utilities;
 
@@ -144,7 +143,6 @@ public static class WorldwideRushExtensions
     }
 
 
-
     // Counters to count method calls
     public static int CounterIsConn = 0; // counts IsConnectedTo
     public static int CounterGetLine0 = 0;
@@ -223,11 +221,38 @@ public static class WorldwideRushExtensions
         }
         return false;
     }
+
+
+    /// <summary>
+    /// Converts the value into the currency.
+    /// </summary>
+    /// <param name="entity">Scene currency</param>
+    /// <param name="number">Value to convert</param>
+    /// <returns></returns>
+    public static decimal Convert(this CurrencyEntity entity, decimal number)
+    {
+        return Math.Ceiling((decimal)number * entity.Factor / 100m);
+    }
+
+
+    /// <summary>
+    /// Get the line to which the vehicle belongs to.
+    /// </summary>
+    /// <param name="vehicle"></param>
+    /// <returns></returns>
+    public static Line? GetLine(this VehicleBaseUser vehicle, GameScene scene)
+    {
+        return scene.Session.Companies[vehicle.Company].Line_manager.GetLine(vehicle);
+    }
+    public static Line? GetLine(this VehicleBaseUser vehicle)
+    {
+        return vehicle.GetLine((GameScene)GameEngine.Last.Main_scene); 
+    }
 }
 
 
 // Line extensions
-public static class LineExt
+public static class Line_Extensions
 {
     public static long GetWaiting(this Line line, CityUser city)
     {
