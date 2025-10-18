@@ -5,7 +5,6 @@ using STM.Data.Entities;
 using STM.GameWorld;
 using STM.GameWorld.Users;
 using STMG.Engine;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace Utilities;
 
