@@ -15,8 +15,15 @@ public static class ExtensionsHelper
     {
         BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
         Type type = obj.GetType();
-        FieldInfo field = type.GetField(name, flags);
-        return (T)field.GetValue(obj);
+        // 2025-10-21 Infixo Code to walk the chain to find parents' private fields
+        while (type != null)
+        {
+            FieldInfo field = type.GetField(name, flags);
+            if (field != null)
+                return (T)field.GetValue(obj); // found the field
+            type = type.BaseType; // step-up the chain
+        }
+        throw new MissingFieldException(obj.GetType().Name, name);
     }
 
     public static T GetPrivateProperty<T>(this object obj, string name)
