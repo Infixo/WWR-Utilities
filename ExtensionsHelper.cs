@@ -94,6 +94,18 @@ public static class ExtensionsHelper
         method.Invoke(null, param); // null target for static
     }
 
+    // 2025-10-2 Infixo: Calling a private constructor
+    // Usage: typeof(MyClass).CallPrivateConstructor<MyClass>([params]);
+    public static T CallPrivateConstructor<T>(this Type type, Type[] args, params object[] param)
+    {
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        ConstructorInfo? ctor = type.GetConstructor(flags, null, args, null);
+        if (ctor == null)
+            throw new Exception("Constructor not found!");
+        else
+            return (T)ctor.Invoke(param);
+    }
+
     // 2025-09-22 Infixo: Accessing a property that is public but its Setter is private
     public static void SetPublicProperty(this object obj, string name, object value)
     {
