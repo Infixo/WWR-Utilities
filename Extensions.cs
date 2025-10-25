@@ -1,6 +1,7 @@
 #pragma warning disable CA1416 // Validate platform compatibility
 
 using Microsoft.Xna.Framework;
+using STM.Data;
 using STM.Data.Entities;
 using STM.GameWorld;
 using STM.GameWorld.Users;
@@ -44,6 +45,13 @@ public static class WorldwideRushExtensions
         }
         return "?";
     }
+
+    public static string GetCountryName(this City city, GameScene scene)
+    {
+        return city.GetCountry(scene).Name.GetTranslation(Localization.Language);
+    }
+
+    public static string GetCountryName(this CityUser city, GameScene scene) => city.City.GetCountryName(scene);
 
 
     // Get all passengers waiting in the city, similar to CityUser.GetPassengers(CityUser destination) but returns all cities
