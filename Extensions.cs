@@ -202,7 +202,8 @@ public static class WorldwideRushExtensions
 
         // Search for indirect connections from any company
         PathSearchData _data = PathSearch.GetData();
-        _data.Open.Add(new PathSearchNode(from.City, 0, PathSearchNode.GetDistanceCost(from.City, direction.City), 0, 0));
+        // 2025-10-25 Patch 1.1.13 adjusted_start_cost added
+        _data.Open.Add(new PathSearchNode(from.City, 0, 0, PathSearchNode.GetDistanceCost(from.City, direction.City), 0, 0));
         CityPath _route = PathSearch.Get(from.City, direction.City, _data, int.MaxValue, scene, 0);
         CounterGetPath++;
         if (_route.Path != null)
