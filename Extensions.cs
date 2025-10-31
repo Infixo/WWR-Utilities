@@ -254,8 +254,36 @@ public static class WorldwideRushExtensions
     }
     public static Line? GetLine(this VehicleBaseUser vehicle)
     {
-        return vehicle.GetLine((GameScene)GameEngine.Last.Main_scene); 
+        return vehicle.GetLine((GameScene)GameEngine.Last.Main_scene);
     }
+
+
+    public static int GetDistance(CityUser a, CityUser b, string type_name)
+    {
+        // TODO: this could be cached later on to speed up the calculations
+        return type_name switch
+        {
+            "road_vehicle" => RoadPathSearch.GetRoute(a, b).Distance,
+            "train" => RoadPathSearch.GetRails(a, b).Distance,
+            "plane" => (int)GameScene.GetDistance(a, b),
+            "ship" => SeaPathSearch.GetRoute(a, b).Distance,
+            _ => 0,
+        };
+    }
+
+    public static double GetDistance(CityUser a, CityUser b, byte vehicle_type)
+    {
+        // TODO: this could be cached later on to speed up the calculations
+        switch (vehicle_type)
+        {
+            case 0: return RoadPathSearch.GetRoute(a, b).Distance;
+            case 1: return RoadPathSearch.GetRails(a, b).Distance;
+            case 2: return GameScene.GetDistance(a, b);
+            case 3: return SeaPathSearch.GetRoute(a, b).Distance;
+        }
+        return 0d;
+    }
+
 }
 
 
@@ -295,29 +323,15 @@ public static class Line_Extensions
         {
             return 0.0; //  there is no route yet
         }
-
-        static double GetDistance(CityUser a, CityUser b, byte vehicle_type)
-        {
-            // TODO: this could be cached later on to speed up the calculations
-            switch (vehicle_type)
-            {
-                case 0: return RoadPathSearch.GetRoute(a, b).Distance;
-                case 1: return RoadPathSearch.GetRails(a, b).Distance;
-                case 2: return GameScene.GetDistance(a, b);
-                case 3: return SeaPathSearch.GetRoute(a, b).Distance;
-            }
-            return 0d;
-        }
-
         double distance = 0.0;
         for (int i = 1; i < cities.Length; i++)
         {
-            double _dist = GetDistance(cities[i - 1], cities[i], line.Vehicle_type);
+            double _dist = WorldwideRushExtensions.GetDistance(cities[i - 1], cities[i], line.Vehicle_type);
             distance += _dist;
         }
         if (line.Instructions.Cyclic)
         {
-            double _dist = GetDistance(cities[^1], cities[0], line.Vehicle_type);
+            double _dist = WorldwideRushExtensions.GetDistance(cities[^1], cities[0], line.Vehicle_type);
             distance += _dist;
         }
         return distance;
