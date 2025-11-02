@@ -6,6 +6,7 @@ using STM.Data.Entities;
 using STM.GameWorld;
 using STM.GameWorld.Users;
 using STMG.Engine;
+using STVisual.Utility;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -59,44 +60,40 @@ public static class WorldwideRushExtensions
     // Get all passengers waiting in the city, similar to CityUser.GetPassengers(CityUser destination) but returns all cities
     public static void GetAllPassengers(this CityUser city, Dictionary<CityUser, int> travellers)
     {
-        //Dictionary<CityUser, int> travellers = [];
-
         // helper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void RegisterTravellers(CityUser cityUser, int people)
         {
-            //if (!travellers.ContainsKey(cityUser))
-                //travellers[cityUser] = 0;
             if (!travellers.TryAdd(cityUser, people))
                 travellers[cityUser] += people;
         }
 
         // review destinations
-        for (int l = 0; l < city.Destinations.Items.Count; l++)
+        for (int d = 0; d < city.Destinations.Items.Count; d++)
         {
-            CityDestination dest = city.Destinations.Items[l];
+            CityDestination dest = city.Destinations.Items[d];
             if (dest.People > 0)
                 RegisterTravellers(dest.Destination.User, dest.People);
         }
 
         // review indirect traffic
-        for (int k = 0; k < city.Indirect.Count; k++)
+        /* 2025-11-02 Already analyzed
+        for (int i = 0; i < city.Indirect.Count; i++)
         {
-            Passengers dest = city.Indirect.Items[k];
+            Passengers dest = city.Indirect.Items[i];
             if (dest.People > 0)
                 RegisterTravellers(dest.Destination.User, dest.People);
-        }
+        }*/
 
         // review returning ones
-        for (int j = 0; j < city.Returns.Count; j++)
+        for (int r = 0; r < city.Returns.Count; r++)
         {
-            ReturnDestination dest = city.Returns[j];
+            ReturnDestination dest = city.Returns[r];
             if (dest.Ready > 0)
                 RegisterTravellers(dest.Home.User, dest.Ready);
         }
-
-        //return travellers;
     }
+
 
     /// <summary>
     /// Calculates number of passengers waiting to go to one of the cities on the route.
@@ -173,16 +170,32 @@ public static class WorldwideRushExtensions
     public static bool IsConnectedTo(this CityUser from, CityUser direction, Line connection)
     {
         CounterIsConn++;
-        GameScene scene = (GameScene)GameEngine.Last.Main_scene;
 
         // TEST TEST
-        return from.ConnectsTo(direction);
+        //return from.ConnectsTo(direction);
 
         // Check if this is city on the line itself
         if (connection.Instructions.Contains(from) && connection.Instructions.Contains(direction))
         {
             CounterGetLine0++;
             return true;
+        }
+
+        // 2025-11-02 Direct connections from other companies always take precedence over indirect ones
+        // Review other lines and see if they connect destination
+        HashSet<Route> reviewed = [connection.Instructions];
+        for (int i = 0; i < from.Routes.Count; i++)
+        {
+            RouteInstance route = from.Routes[i];
+            if (!reviewed.Contains(route.Instructions))
+            {
+                if (route.Instructions.Contains(direction))
+                {
+                    CounterGetLine0++;
+                    return false;
+                }
+                reviewed.Add(route.Instructions);
+            }
         }
 
         // Analyze existing direct connections from any company
@@ -202,11 +215,12 @@ public static class WorldwideRushExtensions
         */
 
         // Analyze existing indirect connections
+        /* 2025-11-02 Already analyzed
         for (int n = 0; n < from.Indirect.Count; n++)
         {
             if (from.Indirect[n].Destination == direction.City && connection.Instructions.Contains(from.Indirect[n].Next.User))
             {
-                CounterGetLine2++;
+                CounterGetLine1++;
                 return true;
             }
             /*
@@ -222,17 +236,38 @@ public static class WorldwideRushExtensions
                 if (_line3 == connection) return true;
             }
             */
-        }
+        //}
 
-        // 2025-11-01 Limit expensive searches
-        if (!from.ConnectsTo(direction))
+        // 2025-11-02 Use already calculated and stored paths
+        //public static CityPath Get(City current, City destination, RouteInstance route, int best_path, GameScene scene, int limit = -1);
+        //public override CityPath GetIndirect(City destination, int best_path, GameScene scene, int limit = -1)
+
+        // Helper - check if a stored path connects with the destination
+        bool CheckStoredPath(VehicleBaseUser vehicle, CityUser destination)
+        {
+            GrowArray<CityPath> paths = vehicle.GetPrivateField<GrowArray<CityPath>>("paths");
+            for (int i = 0; i < paths.Count; i++)
+            {
+                if (paths[i].Path != null && paths[i].Path.Contains(destination.City)) // paths[i].Destination == destination.City && )
+                    return true;// paths[i];
+            }
             return false;
+        }
+        // Iterate through vehicles
+        for (int i = 0; i < connection.Routes.Count; i++)
+            if (CheckStoredPath(connection.Routes[i].Vehicle, direction))
+            {
+                CounterGetLine2++;
+                return true;
+            }
 
-        // Search for indirect connections from any company
+
+        // Last resort - search for an indirect connections via PathSearch
+        GameScene scene = (GameScene)GameEngine.Last.Main_scene;
         PathSearchData _data = PathSearch.GetData();
         // 2025-10-25 Patch 1.1.13 adjusted_start_cost added
         _data.Open.Add(new PathSearchNode(from.City, 0, 0, PathSearchNode.GetDistanceCost(from.City, direction.City), 0, 0));
-        CityPath _route = PathSearch.Get(from.City, direction.City, _data, int.MaxValue, scene, 0); // [76200]
+        CityPath _route = PathSearch.Get(from.City, direction.City, _data, int.MaxValue, scene); // [76200]
         CounterGetPath++;
         if (_route.Path != null)
         {
@@ -407,7 +442,7 @@ public static class Line_Extensions
     }
 
 
-    public static long GetWaiting(this Line line, CityUser city)
+    public static long GetWaitingNew(this Line line, CityUser city)
     {
         if (!line.Instructions.Contains(city)) return 0;
 
@@ -476,9 +511,35 @@ public static class Line_Extensions
     }
 
 
+    public static long GetWaiting(this Line line, CityUser city)
+    {
+        long waiting = 0;
+
+        // 2025-11-02 Indirect passengers have already a route set, and will load ONLY when their next stop is served by the line
+        // Source: VehiclePassengers.Load(RouteInstance, Passengers, Company)
+        for (int i = 0; i < city.Indirect.Count; i++)
+        {
+            Passengers dest = city.Indirect.Items[i];
+            if (dest.People > 0 && (line.Instructions.Contains(dest.Next.User) || line.Instructions.Contains(dest.Destination.User)))
+            {
+                waiting += dest.People;
+                WorldwideRushExtensions.CounterGetLine1++;
+            }
+        }
+
+        // Process Destinations and Returns - these are either direct connections or try to find an indirect one
+        Dictionary<CityUser, int> passengers = [];
+        city.GetAllPassengers(passengers);
+        foreach (var destination in passengers)
+            if (city.IsConnectedTo(destination.Key, line))
+                waiting += destination.Value;
+
+        return waiting;
+    }
+
+
     public static long GetWaiting(this Line line)
     {
-        //return line.GetWaiting([.. line.Instructions.Cities.Select(c => c.City)]);
         long waiting = 0;
         foreach (CityUser city in line.Instructions.Cities)
             waiting += line.GetWaiting(city);
