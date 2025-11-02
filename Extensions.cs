@@ -58,7 +58,7 @@ public static class WorldwideRushExtensions
 
 
     // Get all passengers waiting in the city, similar to CityUser.GetPassengers(CityUser destination) but returns all cities
-    public static void GetAllPassengers(this CityUser city, Dictionary<CityUser, int> travellers)
+    public static void GetAllPassengers(this CityUser city, Dictionary<CityUser, int> travellers, bool includeIndirect)
     {
         // helper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -77,13 +77,13 @@ public static class WorldwideRushExtensions
         }
 
         // review indirect traffic
-        /* 2025-11-02 Already analyzed
-        for (int i = 0; i < city.Indirect.Count; i++)
-        {
-            Passengers dest = city.Indirect.Items[i];
-            if (dest.People > 0)
-                RegisterTravellers(dest.Destination.User, dest.People);
-        }*/
+        if (includeIndirect)
+            for (int i = 0; i < city.Indirect.Count; i++)
+            {
+                Passengers dest = city.Indirect.Items[i];
+                if (dest.People > 0)
+                    RegisterTravellers(dest.Destination.User, dest.People);
+            }
 
         // review returning ones
         for (int r = 0; r < city.Returns.Count; r++)
@@ -92,62 +92,6 @@ public static class WorldwideRushExtensions
             if (dest.Ready > 0)
                 RegisterTravellers(dest.Home.User, dest.Ready);
         }
-    }
-
-
-    /// <summary>
-    /// Calculates number of passengers waiting to go to one of the cities on the route.
-    /// </summary>
-    /// <param name="city"></param>
-    /// <param name="route"></param>
-    /// <returns></returns>
-    public static long GetPassengersEx(this CityUser city, Route route)
-    {
-        long result = 0L;
-        // Direct passengers - easy, the city must be on the route
-        // Not so easy... must also check indirect connections!
-        for (int k = 0; k < city.Destinations.Items.Count; k++)
-        {
-            // Easy scenario - direct connection to a city on the route
-            if (route.Contains(city.Destinations.Items[k].Destination.User))
-            {
-                result += city.Destinations.Items[k].People;
-            }
-            else
-            // The destination is off the route, so we will count it only if there is a connection from any other city on the route excluding the current one
-            {
-                foreach (CityUser otherCity in route.Cities)
-                    if (otherCity != city && otherCity.Connections_hash.Contains(city.Destinations.Items[k].Destination))
-                    {
-                        result += city.Destinations.Items[k].People;
-                    }
-            }
-        }
-        // Indirect passengers - tricky, must check if connecting route is actually the one we're on
-        for (int j = 0; j < city.Indirect.Count; j++)
-        {
-            if (/*ty.Indirect[j].Destination == destination.City ||*/route.Contains(city.Indirect[j].Next.User))
-            {
-                result += city.Indirect[j].People;
-            }
-        }
-        // Returning passengers - same as direct, must account for indirect connection too
-        for (int i = 0; i < city.Returns.Count; i++)
-        {
-            if (route.Contains(city.Returns[i].Home.User))
-            {
-                result += city.Returns[i].Ready;
-            }
-            else
-            {
-                foreach (CityUser otherCity in route.Cities)
-                    if (otherCity != city && otherCity.Connections_hash.Contains(city.Returns[i].Home))
-                    {
-                        result += city.Returns[i].Ready;
-                    }
-            }
-        }
-        return result;
     }
 
 
@@ -160,19 +104,16 @@ public static class WorldwideRushExtensions
     public static int CounterGetPath = 0; // counts GetPath calls
 
     /// <summary>
-    /// Checks if city <paramref name="from"/> is connected to city 
+    /// Checks if city <paramref name="from"/> is connected to a city 
     /// <paramref name="direction"/> via given line <paramref name="connection"/>.
     /// </summary>
+    /// <param name="connection">The line used for connection.</param>
     /// <param name="from">The starting city.</param>
     /// <param name="direction">The target city.</param>
-    /// <param name="connection">The line used for connection.</param>
     /// <returns>True if connected</returns>
-    public static bool IsConnectedTo(this CityUser from, CityUser direction, Line connection)
+    public static bool Connects(this Line connection, CityUser from, CityUser direction, GrowArray<City[]> allPaths)
     {
         CounterIsConn++;
-
-        // TEST TEST
-        //return from.ConnectsTo(direction);
 
         // Check if this is city on the line itself
         if (connection.Instructions.Contains(from) && connection.Instructions.Contains(direction))
@@ -198,69 +139,13 @@ public static class WorldwideRushExtensions
             }
         }
 
-        // Analyze existing direct connections from any company
-        // 2025-11-01 Performance analysis - GetLine is super inefficient
-        // However, here we can reverse the search - since we only need to check a specific line!
-        // If one RouteInstance from that line connects the cities then ALL do!
-        /*
-        for (int i3 = 0; i3 < from.Routes.Count; i3++)
-        {
-            if (from.Routes[i3].Instructions.Contains(direction))
-            {
-                Line _line7 = scene.Session.Companies[from.Routes[i3].Vehicle.Company].Line_manager.GetLine(from.Routes[i3].Vehicle); // [3622]
-                CounterGetLine1++;
-                if (_line7 == connection) return true;
-            }
-        }
-        */
-
-        // Analyze existing indirect connections
-        /* 2025-11-02 Already analyzed
-        for (int n = 0; n < from.Indirect.Count; n++)
-        {
-            if (from.Indirect[n].Destination == direction.City && connection.Instructions.Contains(from.Indirect[n].Next.User))
-            {
-                CounterGetLine1++;
-                return true;
-            }
-            /*
-            for (int l2 = 0; l2 < from.Routes.Count; l2++)
-            {
-                if (!from.Routes[l2].Instructions.Contains(from.Indirect[n].Next.User)) // [5064]
-                {
-                    continue;
-                }
-                // Similar trick as above - use reverse check!
-                Line _line3 = scene.Session.Companies[from.Routes[l2].Vehicle.Company].Line_manager.GetLine(from.Routes[l2].Vehicle); // [15100]
-                CounterGetLine2++;
-                if (_line3 == connection) return true;
-            }
-            */
-        //}
-
         // 2025-11-02 Use already calculated and stored paths
-        //public static CityPath Get(City current, City destination, RouteInstance route, int best_path, GameScene scene, int limit = -1);
-        //public override CityPath GetIndirect(City destination, int best_path, GameScene scene, int limit = -1)
-
-        // Helper - check if a stored path connects with the destination
-        bool CheckStoredPath(VehicleBaseUser vehicle, CityUser destination)
-        {
-            GrowArray<CityPath> paths = vehicle.GetPrivateField<GrowArray<CityPath>>("paths");
-            for (int i = 0; i < paths.Count; i++)
-            {
-                if (paths[i].Path != null && paths[i].Path.Contains(destination.City)) // paths[i].Destination == destination.City && )
-                    return true;// paths[i];
-            }
-            return false;
-        }
-        // Iterate through vehicles
-        for (int i = 0; i < connection.Routes.Count; i++)
-            if (CheckStoredPath(connection.Routes[i].Vehicle, direction))
+        for (int i = 0; i < allPaths.Count; i++)
+            if (allPaths[i].Contains(direction.City))
             {
                 CounterGetLine2++;
                 return true;
             }
-
 
         // Last resort - search for an indirect connections via PathSearch
         GameScene scene = (GameScene)GameEngine.Last.Main_scene;
@@ -271,57 +156,12 @@ public static class WorldwideRushExtensions
         CounterGetPath++;
         if (_route.Path != null)
         {
-            //for (int m = 0; m < from.Routes.Count; m++)
-            //{
-            if (/*from.Routes[m]*/connection.Instructions.Contains(_route.Path[1].User))
+            if (connection.Instructions.Contains(_route.Path[1].User))
             {
-                //Line _line4 = scene.Session.Companies[from.Routes[m].Vehicle.Company].Line_manager.GetLine(from.Routes[m].Vehicle);
                 CounterGetLine3++;
-                //if (_line4 == connection)
                 return true;
             }
-            //}
         }
-        return false;
-    }
-
-
-    public static bool ConnectsTo(this CityUser from, CityUser to)
-    {
-        // (1) Direct connection
-        if (from.Connections_hash.Contains(to.City))
-        {
-            CounterGetLine0++;
-            return true;
-        }
-
-        // (2) One-stop connection
-        for (int i = 0; i < from.Connections.Count; i++)
-            if (from.Connections[i].User.Connections_hash.Contains(to.City))
-            {
-                CounterGetLine1++;
-                return true;
-            }
-
-        // (3) Two-stop connection
-        for (int i = 0; i < from.Connections.Count; i++)
-            for (int j = 0; j < from.Connections[i].User.Connections.Count; j++)
-                if (from.Connections[i].User.Connections[j].User.Connections_hash.Contains(to.City))
-                {
-                    CounterGetLine2++;
-                    return true;
-                }
-
-        // (4) Three-stop connection
-        for (int i = 0; i < from.Connections.Count; i++)
-            for (int j = 0; j < from.Connections[i].User.Connections.Count; j++)
-                for (int k = 0; k < from.Connections[i].User.Connections[j].User.Connections.Count; k++)
-                    if (from.Connections[i].User.Connections[j].User.Connections[k].User.Connections_hash.Contains(to.City))
-                    {
-                        CounterGetLine3++;
-                        return true;
-                    }
-
         return false;
     }
 
@@ -385,132 +225,6 @@ public static class WorldwideRushExtensions
 // Line extensions
 public static class Line_Extensions
 {
-    public struct CityInfo
-    {
-        public int Level = 0;
-        public bool Access = true;
-        public CityInfo (int n, bool a) { Level = n; Access = a; }
-        public override readonly string ToString() => $"{Level}-{Access}";
-    };
-
-    /// <summary>
-    /// Adds to the set all cities directly connected with them
-    /// </summary>
-    /// <param name="cities"></param>
-    private static void ExpandConnections(HashSet<City> cities, HashSet<City> processed)
-    {
-        HashSet<City> next = [];
-        foreach (City city in cities.Except(processed))
-        {
-            next.UnionWith(city.User.Connections_hash);
-            processed.Add(city);
-        }
-        cities.UnionWith(next); // Add to the original set
-    }
-
-
-    // 2025-11-01 New approach
-    /// <summary>
-    /// Returns number of passengers waiting to use the line in the set of cities.
-    /// </summary>
-    /// <param name="line"></param>
-    /// <param name="cities"></param>
-    /// <returns></returns>
-    public static long GetWaiting(this Line line, City[] cities)
-    {
-        // Build a list of passengers - make sure we only process cities on the line
-        Dictionary<CityUser, int> passengers = [];
-        foreach(City city in cities.Where(c => line.Instructions.Contains(c.User)))
-            city.User.GetAllPassengers(passengers);
-
-        if (passengers.Count == 0) return 0; // safety
-
-        // Build connections hash-set
-        HashSet<City> connected = [.. line.Instructions.Cities.Select(c => c.City)];
-        HashSet<City> processed = [];
-        ExpandConnections(connected, processed); // this will add all cities connected ditectly to the line-cities
-        ExpandConnections(connected, processed); // 1st hop
-        ExpandConnections(connected, processed); // 2nd hop
-
-        // Calculate waiting passengers
-        long waiting = 0;
-        foreach (var dest in passengers)
-            if (connected.Contains(dest.Key.City))
-                waiting += dest.Value;
-
-        return waiting;
-    }
-
-
-    public static long GetWaitingNew(this Line line, CityUser city)
-    {
-        if (!line.Instructions.Contains(city)) return 0;
-
-        // Build list of cities accessible via the line
-        Dictionary<CityUser, CityInfo> network = [];
-        network.Add(city, new CityInfo(0, false));
-        foreach(CityUser c in line.Instructions.Cities)
-            if (c != city) network.Add(c, new CityInfo(1, true));
-        HashSet<Route> processed = [line.Instructions];
-
-        // Determine cities that can be accessed via the line
-        void ExpandConnections(int level)
-        {
-            Dictionary<CityUser, CityInfo> next = [];
-            foreach (var pair in network.Where(x => x.Value.Level == level))
-                for (int i = 0; i < pair.Key.Routes.Count; i++)
-                {
-                    Route route = pair.Key.Routes[i].Instructions;
-                    if (!processed.Contains(route))
-                    {
-                        foreach (CityUser c in route.Cities)
-                            next.TryAdd(c, new CityInfo(level+1, true));
-                        processed.Add(route);
-                    }
-                }
-            foreach (var pair in next) network.TryAdd(pair.Key, pair.Value);
-        }
-        ExpandConnections(1);
-        ExpandConnections(2);
-        ExpandConnections(3);
-
-        // Remove cities that can be accessed more directly
-        processed = [line.Instructions]; // reset
-        void RemoveConnections(int level)
-        {
-            foreach (var pair in network.Where(x => x.Value.Level == level-1 && !x.Value.Access))
-                for (int i = 0; i < pair.Key.Routes.Count; i++)
-                {
-                    Route route = pair.Key.Routes[i].Instructions;
-                    if (!processed.Contains(route))
-                    {
-                        foreach (CityUser c in route.Cities)
-                        {
-                            if (network.ContainsKey(c) && level < network[c].Level) // this is better connection
-                                    network[c] = new CityInfo(level, false);
-                                // same level or worse - all other cities from here will be same or worse
-                        }
-                        processed.Add(route);
-                    }
-                } 
-        }
-        RemoveConnections(1);
-        RemoveConnections(2);
-        RemoveConnections(3);
-
-        // Process passengers
-        long waiting = 0;
-        Dictionary<CityUser, int> passengers = [];
-        city.GetAllPassengers(passengers);
-        HashSet<CityUser> filtered = [.. network.Where(x => x.Value.Access).Select(x => x.Key)];
-        foreach (var destination in passengers)
-            if (filtered.Contains(destination.Key))
-                waiting += destination.Value;
-        
-        return waiting;
-    }
-
-
     public static long GetWaiting(this Line line, CityUser city)
     {
         long waiting = 0;
@@ -527,11 +241,22 @@ public static class Line_Extensions
             }
         }
 
-        // Process Destinations and Returns - these are either direct connections or try to find an indirect one
+
+        // 2025-11-02 Use already calculated and stored paths
+        GrowArray<City[]> allPaths = new();
+        for (int i = 0; i < line.Routes.Count; i++)
+        {
+            GrowArray<CityPath> paths = line.Routes[i].Vehicle.GetPrivateField<GrowArray<CityPath>>("paths");
+            for (int j = 0; j < paths.Count; j++)
+                if (paths[j].Path != null)
+                    allPaths.AddSingle(paths[j].Path, (a,b) => a.SequenceEqual(b));
+        }
+
+        // Destinations and Returns - direct connections, stored paths and indirect new paths
         Dictionary<CityUser, int> passengers = [];
-        city.GetAllPassengers(passengers);
+        city.GetAllPassengers(passengers, false);
         foreach (var destination in passengers)
-            if (city.IsConnectedTo(destination.Key, line))
+            if (line.Connects(city, destination.Key, allPaths))
                 waiting += destination.Value;
 
         return waiting;
