@@ -7,7 +7,6 @@ using STM.GameWorld;
 using STM.GameWorld.Users;
 using STMG.Engine;
 using STVisual.Utility;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Utilities;
@@ -190,6 +189,30 @@ public static class WorldwideRushExtensions
     public static Line? GetLine(this VehicleBaseUser vehicle)
     {
         return vehicle.GetLine((GameScene)GameEngine.Last.Main_scene);
+    }
+
+
+    /// <summary>
+    /// Checks if the vehicle is better (higher tier or capacity) than the one. Checks for range for planes.
+    /// </summary>
+    /// <param name="original"></param>
+    /// <param name="company"></param>
+    /// <param name="next"></param>
+    /// <param name="hub"></param>
+    /// <param name="range"></param>
+    /// <returns></returns>
+    public static bool IsBetter(this VehicleBaseEntity original, Company company, VehicleBaseEntity next, Hub hub, int range)
+    {
+        if (next.Graphics.Entity == null || !next.CanBuy(company, hub.Longitude))
+            return false;
+        if (next is PlaneEntity _plane && _plane.Range < range)
+            return false;
+        if (original is TrainEntity _o && next is TrainEntity _n)
+            if (_n.Tier > _o.Tier || (_n.Tier == _o.Tier && _n.Max_capacity > _o.Max_capacity))
+                return true;
+        if (next.Tier > original.Tier || (next.Tier == original.Tier && next.Capacity > original.Capacity))
+            return true;
+        return false;
     }
 
 
