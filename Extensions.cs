@@ -14,13 +14,17 @@ namespace Utilities;
 
 public static class WorldwideRushExtensions
 {
+    // 20251114 There is Accepts_indirect calculated every frame in CityUser.StartUpdate
+    // Doing some math shows that ratio = accepts_indirect * 5
+    // 5 comes from 100/20 where 20 is hardcoded and means "city is full"
+    // The treshold values are thus rescaled by 5
     public static Color OvercrowdedColor(this CityUser city, Color defColor)
     {
-        int ratio = city.GetTotalIndirect() * 100 / city.GetMaxIndirect();
-        if (ratio > 150) return Color.DarkRed;
-        else if (ratio > 100) return Color.Red;
-        else if (ratio > 75) return Color.DarkOrange;
-        else if (ratio > 50) return Color.Yellow;
+        //int ratio = city.GetTotalIndirect() * 100 / city.GetMaxIndirect();
+        if (city.Accepts_indirect >= 30) return Color.DarkRed; // 150%
+        else if (city.Accepts_indirect >= 20) return Color.Red; // 100%
+        else if (city.Accepts_indirect >= 15) return Color.DarkOrange; // 75%
+        else if (city.Accepts_indirect >= 10) return Color.Yellow; // 50%
         return defColor;
     }
 
