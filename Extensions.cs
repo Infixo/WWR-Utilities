@@ -303,7 +303,14 @@ public static class Line_Extensions
     // Distance between cities is not stored, it is calculated when needed :(
     public static double GetTotalDistance(this Line line)
     {
-        CityUser[] cities = line.Instructions.Cities; // for readability
+        return line.Instructions.GetTotalDistance(line.Vehicle_type);
+    }
+
+    // Calculate total distance, for cyclic routes adds last-first section
+    // Distance between cities is not stored, it is calculated when needed :(
+    public static double GetTotalDistance(this Route route, byte vehicle_type)
+    {
+        CityUser[] cities = route.Cities; // for readability
         if (cities.Length < 2)
         {
             return 0.0; //  there is no route yet
@@ -311,12 +318,12 @@ public static class Line_Extensions
         double distance = 0.0;
         for (int i = 1; i < cities.Length; i++)
         {
-            double _dist = WorldwideRushExtensions.GetDistance(cities[i - 1], cities[i], line.Vehicle_type);
+            double _dist = WorldwideRushExtensions.GetDistance(cities[i - 1], cities[i], vehicle_type);
             distance += _dist;
         }
-        if (line.Instructions.Cyclic)
+        if (route.Cyclic)
         {
-            double _dist = WorldwideRushExtensions.GetDistance(cities[^1], cities[0], line.Vehicle_type);
+            double _dist = WorldwideRushExtensions.GetDistance(cities[^1], cities[0], vehicle_type);
             distance += _dist;
         }
         return distance;
