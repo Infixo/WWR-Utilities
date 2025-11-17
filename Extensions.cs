@@ -170,6 +170,80 @@ public static class WorldwideRushExtensions
 
 
     /// <summary>
+    /// Compiles all stored paths into a single array to speed up later checks.
+    /// </summary>
+    /// <param name="Routes"></param>
+    /// <param name="company"></param>
+    /// <returns></returns>
+    internal static GrowArray<City[]> GetAllStoredPaths(GrowArray<RouteInstance> Routes, ushort company = ushort.MaxValue)
+    {
+        GrowArray<City[]> allPaths = new();
+        for (int i = 0; i < Routes.Count; i++)
+        {
+            if (company == ushort.MaxValue || Routes[i].Vehicle.Company == company)
+            {
+                GrowArray<CityPath> paths = Routes[i].Vehicle.GetPrivateField<GrowArray<CityPath>>("paths");
+                for (int j = 0; j < paths.Count; j++)
+                    if (paths[j].Path != null)
+                        allPaths.AddSingle(paths[j].Path, (a, b) => a.SequenceEqual(b));
+            }
+        }
+        return allPaths;
+    }
+
+
+    /// <summary>
+    /// Checks if city is connected to another one by a company's route.
+    /// </summary>
+    /// <param name="from"></param>
+    /// <param name="direction"></param>
+    /// <param name="company"></param>
+    /// <param name="scene"></param>
+    /// <returns></returns>
+    public static bool IsConnected(this CityUser from, CityUser direction, ushort company, GrowArray<City[]> allPaths, GameScene scene)
+    {
+        CounterIsConn++;
+
+        // Direct connections
+        if (from.Connections_hash.Contains(direction.City))
+        {
+            CounterGetLine0++;
+            for (int i = 0; i < from.Routes.Count; i++)
+                if (from.Routes[i].Vehicle.Company == company && from.Routes[i].Instructions.Contains(direction))
+                    return true;
+            // Another company has a direct route, so our indirect connection won't work anyway!
+            return false;
+        }
+
+        // Indirect connections
+        for (int i = 0; i < allPaths.Count; i++)
+            if (allPaths[i].Contains(direction.City))
+            {
+                CounterGetLine2++;
+                return true;
+            }
+
+        // Last resort - search for an indirect connections via PathSearch
+        PathSearchData _data = PathSearch.GetData();
+        // 2025-10-25 Patch 1.1.13 adjusted_start_cost added
+        _data.Open.Add(new PathSearchNode(from.City, 0, 0, PathSearchNode.GetDistanceCost(from.City, direction.City), 0, 0));
+        CityPath _route = PathSearch.Get(from.City, direction.City, _data, int.MaxValue, scene, overcrowd_factor: 0); // Last param if omitted ignores overcrowded lines!
+        CounterGetPath++;
+        if (_route.Path != null)
+        {
+            for (int i = 0; i < from.Routes.Count; i++)
+                if (from.Routes[i].Vehicle.Company == company && from.Routes[i].Instructions.Contains(_route.Path[1].User))
+                {
+                    CounterGetLine3++;
+                    return true;
+                }
+        }
+
+        return false;
+    }
+
+
+    /// <summary>
     /// Converts the value into the currency.
     /// </summary>
     /// <param name="entity">Scene currency</param>
@@ -270,14 +344,7 @@ public static class Line_Extensions
 
 
         // 2025-11-02 Use already calculated and stored paths
-        GrowArray<City[]> allPaths = new();
-        for (int i = 0; i < line.Routes.Count; i++)
-        {
-            GrowArray<CityPath> paths = line.Routes[i].Vehicle.GetPrivateField<GrowArray<CityPath>>("paths");
-            for (int j = 0; j < paths.Count; j++)
-                if (paths[j].Path != null)
-                    allPaths.AddSingle(paths[j].Path, (a,b) => a.SequenceEqual(b));
-        }
+        GrowArray<City[]> allPaths = WorldwideRushExtensions.GetAllStoredPaths(line.Routes);
 
         // Destinations and Returns - direct connections, stored paths and indirect new paths
         Dictionary<CityUser, int> passengers = [];
