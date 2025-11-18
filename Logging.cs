@@ -15,7 +15,7 @@ public static class Log
     /// Writes a string message to a log file in the user's temporary directory.
     /// </summary>
     /// <param name="logMessage">The message to write to the log.</param>
-    public static void Write(string logMessage, bool includeMethod = true)
+    public static void Write(string logMessage, bool includeMethod = false)
     {
         if (includeMethod) logMessage = GetCallingMethod(2) + ": " + logMessage;
 
