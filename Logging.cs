@@ -114,7 +114,6 @@ public static class Log
         //return sb.ToString();
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     public static void DumpMainDataDefaults()
     {
         Type type = MainData.Defaults.GetType();

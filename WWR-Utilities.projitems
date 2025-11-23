@@ -12,5 +12,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ExtensionsHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logging.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ModInit.cs" />
   </ItemGroup>
 </Project>

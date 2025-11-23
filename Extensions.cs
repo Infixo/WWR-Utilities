@@ -1,5 +1,3 @@
-#pragma warning disable CA1416 // Validate platform compatibility
-
 using Microsoft.Xna.Framework;
 using STM.Data;
 using STM.Data.Entities;
@@ -396,5 +394,3 @@ public static class Line_Extensions
         return distance;
     }
 }
-
-#pragma warning restore CA1416 // Validate platform compatibility
