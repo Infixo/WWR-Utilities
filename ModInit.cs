@@ -1,9 +1,8 @@
 ﻿using HarmonyLib;
 using System.Reflection;
 using System.Reflection.Emit;
-#if DEBUG
 using System.Reflection.Metadata;
-#endif
+using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -18,6 +17,7 @@ public static class ModInit
         DebugConsole.Show();
         string harmonyId = "Infixo." + name;
         Log.Write($"WWR mod {name} successfully started, harmonyId is {harmonyId}.");
+        //EnsureMetadataLoaded();
 
         // Harmony
         var harmony = new Harmony(harmonyId);
@@ -64,11 +64,7 @@ public static class ModInit
                 // var fullSignature = $"{returnType} {declaringTypeName}.{methodName}({string.Join(", ", parameters)})"; // redundant
 
                 // IL hash (semantic): opcode + normalized operand list
-#if DEBUG
                 string ilHash = SemanticIlHasher.ComputeSemanticIlHash(patchedMethod);
-#else
-                string ilHash = "RELEASE";
-#endif
 
                 // Optionally include a hex dump of IL (commented out to keep file small)
                 // string ilHexDump = ilBytes != null ? BitConverter.ToString(ilBytes).Replace("-", "") : null;
@@ -160,7 +156,34 @@ public static class ModInit
 
         return full;
     }
+
+
+    /// <summary>
+    /// Attaches a force-load of metadata.dll to the resolver event. It loads metadata.dll that is shipped with the game.
+    /// </summary>
+    public static void EnsureMetadataLoaded()
+    {
+        Assembly currentAssembly = Assembly.GetExecutingAssembly();
+        string gameDir = Path.GetDirectoryName(Path.GetDirectoryName(currentAssembly.Location)!)!;
+        string path = Path.Combine(gameDir, "System.Reflection.Metadata.dll");
+        AssemblyLoadContext alc = AssemblyLoadContext.GetLoadContext(currentAssembly)!;
+        if (!File.Exists(path))
+        {
+            Log.Write("Warning! System.Reflection.Metadata.dll is not available.");
+            return;
+        }
+        alc.Resolving += (context, assemblyName) =>
+        {
+            if (assemblyName.Name == "System.Reflection.Metadata")
+            {
+                Log.Write($"Loading {path}.");
+                return AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+            }
+            return null;
+        };
+    }
 }
+
 
 /// <summary>
 /// Compute a stable "semantic" hash of a method's IL using BlobReader.
