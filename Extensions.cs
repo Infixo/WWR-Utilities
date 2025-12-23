@@ -150,7 +150,7 @@ public static class WorldwideRushExtensions
 
         // Last resort - search for an indirect connections via PathSearch
         GameScene scene = (GameScene)GameEngine.Last.Main_scene;
-        PathSearchData _data = PathSearch.GetData();
+        PathSearchData _data = PathSearch.GetData(from.City, direction.City, scene);
         // 2025-10-25 Patch 1.1.13 adjusted_start_cost added
         _data.Open.Add(new PathSearchNode(from.City, 0, 0, PathSearchNode.GetDistanceCost(from.City, direction.City), 0, 0));
         CityPath _route = PathSearch.Get(from.City, direction.City, _data, int.MaxValue, scene, overcrowd_factor: 0); // Last param if omitted ignores overcrowded lines!
@@ -222,7 +222,7 @@ public static class WorldwideRushExtensions
             }
 
         // Last resort - search for an indirect connections via PathSearch
-        PathSearchData _data = PathSearch.GetData();
+        PathSearchData _data = PathSearch.GetData(from.City, direction.City, scene);
         // 2025-10-25 Patch 1.1.13 adjusted_start_cost added
         _data.Open.Add(new PathSearchNode(from.City, 0, 0, PathSearchNode.GetDistanceCost(from.City, direction.City), 0, 0));
         CityPath _route = PathSearch.Get(from.City, direction.City, _data, int.MaxValue, scene, overcrowd_factor: 0); // Last param if omitted ignores overcrowded lines!
